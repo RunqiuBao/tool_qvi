@@ -9,3 +9,11 @@ pwc_path = './utils/network-default.pytorch'
 checkpoint = 'checkpoints/quadratic/model.ckpt'
 
 
+# params not used now
+testset_root = './datasets/example'
+test_size = (854, 480)
+test_crop_size = (854, 480)
+store_path = 'outputs/example/'
+
+
+
