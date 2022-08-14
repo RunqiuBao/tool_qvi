@@ -197,7 +197,7 @@ def test():
     model.load_state_dict(dict1['model_state_dict'])
 
     if not os.path.exists(config.store_path):
-        os.mkdir(config.store_path)
+        os.makedirs(config.store_path, exist_ok=False)
     generate_1()
 
 #print(testset)
