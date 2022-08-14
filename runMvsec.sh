@@ -1,0 +1,1 @@
+python3 interpolate.py configs/config_rpgevent.py --src_datapath /media/runqiu/data/MVSEC/outdoor_day/2/ --dst_datapath /media/runqiu/data/MVSEC/valid/2_4x --src_file_stye %06d.png --dst_file_stye %08d.png --numbias 1
