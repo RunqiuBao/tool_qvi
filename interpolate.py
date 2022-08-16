@@ -1,3 +1,4 @@
+from operator import index
 import models
 # import datas
 import configs
@@ -34,6 +35,7 @@ parser.add_argument('--dst_datapath', type=str, default="./outputs/example/car-t
 parser.add_argument('--src_file_stye', type=str, default="%06d.jpg", help='clean img-folder path')
 parser.add_argument('--dst_file_stye', type=str, default="%06d.png", help='clean img-folder path')
 parser.add_argument('--numbias', type=int, default=0, help='frame number bias in GoPro dataset')
+parser.add_argument('--sequence_length', type=int, default=200, help='how many frames in the sequence')
 args = parser.parse_args()
 # args = parser.parse_config()
 
@@ -125,16 +127,19 @@ def generate_1():
     start_idx = 0
     n_process = 1
     store_num = 512
+    batch_size = 4
     print(len(img_file))
+    sequence_length = min(args.sequence_length, len(img_file))
 
     
-    
+
     #--------processing--------
     start = time.time()
     out_imgs=[]
     frame_numbias = int(args.numbias)
-    for i in range(frame_numbias,len(img_file)+frame_numbias-3):
-        
+    I0, I1, I2, I3 = [], [], [], []
+    indexInBatch = 0
+    for i in range(frame_numbias, sequence_length+frame_numbias-3):
         img_0 = np.array(pil_imread(data_path + "/" + (args.src_file_stye  %(i-1))))
         img_1 = np.array(pil_imread(data_path + "/" + (args.src_file_stye  %(i+0))))
         img_2 = np.array(pil_imread(data_path + "/" + (args.src_file_stye  %(i+1))))
@@ -151,23 +156,37 @@ def generate_1():
         img_3 = trans(img_3).unsqueeze(0)
         
         
-        I0 = img_0.cuda()
-        I1 = img_1.cuda()
-        I2 = img_2.cuda()
-        I3 = img_3.cuda()
+        I0.append(img_0.cuda())
+        I1.append(img_1.cuda())
+        I2.append(img_2.cuda())
+        I3.append(img_3.cuda())
+
+        if indexInBatch < (batch_size - 1) and i < (len(img_file)+frame_numbias-3-1):
+            indexInBatch += 1
+            continue
+        else:
+            I0 = torch.concat(I0, dim=0)
+            I1 = torch.concat(I1, dim=0)
+            I2 = torch.concat(I2, dim=0)
+            I3 = torch.concat(I3, dim=0)
+            indexInBatch = 0
         
-        
-        out_imgs.append(img_1[0][:,paddingwidth:-paddingwidth,paddingwidth:-paddingwidth])
+        interFramesOutput = []
         with torch.no_grad():
             for tt in range(config.inter_frames):
                 x = config.inter_frames
                 t = 1.0/(x+1) * (tt + 1)
-                
                 output = model(I0, I1, I2, I3, t)
                 It_warp = output
-                It_warp = It_warp.cpu()[0]
-                out_imgs.append(It_warp[:,paddingwidth:-paddingwidth,paddingwidth:-paddingwidth])
+                interFramesOutput.append(It_warp.cpu())
+        # stack output in correct order
+        I1 = I1.cpu()
+        for indexBatch in range(I1.shape[0]):
+            out_imgs.append(I1[indexBatch, :, paddingwidth:-paddingwidth, paddingwidth:-paddingwidth])
+            for indexInterFrame in range(config.inter_frames):
+                out_imgs.append(interFramesOutput[indexInterFrame][indexBatch, :, paddingwidth:-paddingwidth, paddingwidth:-paddingwidth])
 
+        I0, I1, I2, I3 = [], [], [], []
         print("{}-th batch finish!".format(i))
                 
         if len(out_imgs) == store_num:
@@ -184,6 +203,13 @@ def generate_1():
     store_data_parallel(out_imgs, n_process, start_idx, store_path)
         
     print ('Save time cost: %f s' %(time.time()-start))
+
+
+    '''
+    main branch time record:
+    Save time cost: 23.183207 s
+    Done! cost: 5220.871939 s
+    '''
     
 
     
