@@ -79,7 +79,7 @@ def pil_imwrite(path, img):
 def store_data(out_imgs,start,end,start_pos,store_path):
     for k in range(start,end):     
         out = revtrans(out_imgs[k])
-        print('write to {}'.format(store_path + "/"+(args.dst_file_stye %(k+start_pos))))
+        # print('write to {}'.format(store_path + "/"+(args.dst_file_stye %(k+start_pos))))
         pil_imwrite(store_path + "/"+(args.dst_file_stye %(k+start_pos)),out)
         
 
@@ -139,6 +139,7 @@ def generate_1():
     frame_numbias = int(args.numbias)
     I0, I1, I2, I3 = [], [], [], []
     indexInBatch = 0
+    print('tool_qvi: save {} images to {}'.format((frame_numbias, sequence_length+frame_numbias-3), store_path))
     for i in range(frame_numbias, sequence_length+frame_numbias-3):
         img_0 = np.array(pil_imread(data_path + "/" + (args.src_file_stye  %(i-1))))
         img_1 = np.array(pil_imread(data_path + "/" + (args.src_file_stye  %(i+0))))
@@ -187,7 +188,7 @@ def generate_1():
                 out_imgs.append(interFramesOutput[indexInterFrame][indexBatch, :, paddingwidth:-paddingwidth, paddingwidth:-paddingwidth])
 
         I0, I1, I2, I3 = [], [], [], []
-        print("{}-th batch finish!".format(i))
+        # print("{}-th batch finish!".format(i))
                 
         if len(out_imgs) == store_num:
             
@@ -196,13 +197,13 @@ def generate_1():
             out_imgs=[]
             
             
-    print ('Proc time cost: %f s' %(time.time()-start))
+    print ('tool_qvi: Proc time cost: %f s' %(time.time()-start))
     start = time.time()    
     
     
     store_data_parallel(out_imgs, n_process, start_idx, store_path)
         
-    print ('Save time cost: %f s' %(time.time()-start))
+    print ('tool_qvi: Save time cost: %f s' %(time.time()-start))
 
 
     '''
