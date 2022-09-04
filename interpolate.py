@@ -79,7 +79,7 @@ def pil_imwrite(path, img):
 def store_data(out_imgs,start,end,start_pos,store_path):
     for k in range(start,end):     
         out = revtrans(out_imgs[k])
-        # print('write to {}'.format(store_path + "/"+(args.dst_file_stye %(k+start_pos))))
+        print('write to {}'.format(store_path + "/"+(args.dst_file_stye %(k+start_pos))))
         pil_imwrite(store_path + "/"+(args.dst_file_stye %(k+start_pos)),out)
         
 
@@ -188,7 +188,7 @@ def generate_1():
                 out_imgs.append(interFramesOutput[indexInterFrame][indexBatch, :, paddingwidth:-paddingwidth, paddingwidth:-paddingwidth])
 
         I0, I1, I2, I3 = [], [], [], []
-        # print("{}-th batch finish!".format(i))
+        print("{}-th batch finish!".format(i))
                 
         if len(out_imgs) == store_num:
             
