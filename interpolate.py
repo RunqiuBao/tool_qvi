@@ -186,10 +186,10 @@ def generate_1():
         I1 = I1.cpu()
         for indexBatch in range(I1.shape[0]):
             out_imgs.append(I1[indexBatch, :, paddingwidth:-paddingwidth, paddingwidth:-paddingwidth])
-            ts_imgs.append(i + indexBatch)
+            ts_imgs.append(i - (batch_size-frame_numbias) + indexBatch)
             for indexInterFrame in range(config.inter_frames):
                 out_imgs.append(interFramesOutput[indexInterFrame][indexBatch, :, paddingwidth:-paddingwidth, paddingwidth:-paddingwidth])
-                ts_imgs.append(i + indexBatch + 1 * (indexInterFrame + 1) / (config.inter_frames + 1))
+                ts_imgs.append(i - (batch_size-frame_numbias) + indexBatch + 1 * (indexInterFrame + 1) / (config.inter_frames + 1))
 
         I0, I1, I2, I3 = [], [], [], []
         print("{}-th batch finish!".format(i))
@@ -199,6 +199,7 @@ def generate_1():
             store_data_parallel(out_imgs, ts_imgs, n_process, start_idx, store_path)
             start_idx += len(out_imgs)
             out_imgs=[]
+            ts_imgs=[]
             
             
     print ('tool_qvi: Proc time cost: %f s' %(time.time()-start))
