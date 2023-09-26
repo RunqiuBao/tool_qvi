@@ -1,0 +1,1 @@
+python3 interpolate.py configs/config_simulation.py --src_datapath /home/runqiu/tmptmp/vslam-0/rightcam/ --dst_datapath /home/runqiu/tmptmp/vslam-0/rightcamx4/ --src_file_stye %06d.png --dst_file_stye %06d.png --numbias 1 --sequence_length 2000

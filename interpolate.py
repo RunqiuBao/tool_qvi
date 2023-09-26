@@ -34,7 +34,7 @@ parser.add_argument('--src_datapath', type=str, default="./datasets/example/car-
 parser.add_argument('--dst_datapath', type=str, default="./outputs/example/car-turn", help='clean img-folder path')
 parser.add_argument('--src_file_stye', type=str, default="%06d.jpg", help='clean img-folder path')
 parser.add_argument('--dst_file_stye', type=str, default="%06d.png", help='clean img-folder path')
-parser.add_argument('--numbias', type=int, default=0, help='frame number bias in GoPro dataset')
+parser.add_argument('--numbias', type=int, default=1, help='frame number bias in GoPro dataset')
 parser.add_argument('--sequence_length', type=int, default=200, help='how many frames in the sequence')
 args = parser.parse_args()
 # args = parser.parse_config()
@@ -65,6 +65,13 @@ model = nn.DataParallel(model)
 tot_time = 0
 tot_frames = 0
 
+# timestamp file
+tsfilePath = os.path.join(args.dst_datapath, "../tsx4.txt")
+if os.path.exists(tsfilePath):
+    print("remove existing ts file")
+    os.remove(tsfilePath)
+    with open(tsfilePath, 'w'):
+        pass  # The 'pass' statement is used to do nothing inside the 'with' block
 print('Everything prepared. Ready to test...')
 
 def pil_imread(path):
@@ -76,14 +83,15 @@ def pil_imwrite(path, img):
     img.save(path)
     
 
-def store_data(out_imgs,start,end,start_pos,store_path):
+def store_data(out_imgs,ts_imgs,start,end,start_pos,store_path):
     for k in range(start,end):     
         out = revtrans(out_imgs[k])
         print('write to {}'.format(store_path + "/"+(args.dst_file_stye %(k+start_pos))))
         pil_imwrite(store_path + "/"+(args.dst_file_stye %(k+start_pos)),out)
-        
+        with open(tsfilePath, 'a') as tsfile:
+            tsfile.write(str(ts_imgs[k]) + '\n')      
 
-def store_data_parallel(out_imgs,n_process,start_pos,store_path):
+def store_data_parallel(out_imgs,ts_imgs,n_process,start_pos,store_path):
     img_length = len(out_imgs)
     n_process = min(n_process,img_length)
 #     n_process = max(n_process,1)#bao
@@ -103,17 +111,13 @@ def store_data_parallel(out_imgs,n_process,start_pos,store_path):
         end = start + process_work[i]
         job_pos = end
         print("Process %d, start=%d, end=%d" %(i,start,end))
-        store_data(out_imgs,start,end,start_pos,store_path)
+        store_data(out_imgs,ts_imgs,start,end,start_pos,store_path)
     #     p=mp.Process(target=store_data,args=(out_imgs,start,end,start_pos,store_path,))
     #     p.start()
     #     p_list.append(p)
         
     # for p in p_list:
     #     p.join()
-
-        
-
-        
 
         
 def generate_1():
@@ -131,11 +135,10 @@ def generate_1():
     print(len(img_file))
     sequence_length = min(args.sequence_length, len(img_file))
 
-    
-
     #--------processing--------
     start = time.time()
-    out_imgs=[]
+    out_imgs = []
+    ts_imgs = []
     frame_numbias = int(args.numbias)
     I0, I1, I2, I3 = [], [], [], []
     indexInBatch = 0
@@ -155,8 +158,7 @@ def generate_1():
         img_1 = trans(img_1).unsqueeze(0)
         img_2 = trans(img_2).unsqueeze(0)
         img_3 = trans(img_3).unsqueeze(0)
-        
-        
+
         I0.append(img_0.cuda())
         I1.append(img_1.cuda())
         I2.append(img_2.cuda())
@@ -184,15 +186,17 @@ def generate_1():
         I1 = I1.cpu()
         for indexBatch in range(I1.shape[0]):
             out_imgs.append(I1[indexBatch, :, paddingwidth:-paddingwidth, paddingwidth:-paddingwidth])
+            ts_imgs.append(frame_numbias + indexBatch)
             for indexInterFrame in range(config.inter_frames):
                 out_imgs.append(interFramesOutput[indexInterFrame][indexBatch, :, paddingwidth:-paddingwidth, paddingwidth:-paddingwidth])
+                ts_imgs.append(frame_numbias + indexBatch + 1 * (indexInterFrame + 1) / (config.inter_frames + 1))
 
         I0, I1, I2, I3 = [], [], [], []
         print("{}-th batch finish!".format(i))
                 
         if len(out_imgs) == store_num:
             
-            store_data_parallel(out_imgs, n_process, start_idx, store_path)
+            store_data_parallel(out_imgs, ts_imgs, n_process, start_idx, store_path)
             start_idx += len(out_imgs)
             out_imgs=[]
             
@@ -200,8 +204,7 @@ def generate_1():
     print ('tool_qvi: Proc time cost: %f s' %(time.time()-start))
     start = time.time()    
     
-    
-    store_data_parallel(out_imgs, n_process, start_idx, store_path)
+    store_data_parallel(out_imgs, ts_imgs, n_process, start_idx, store_path)
         
     print ('tool_qvi: Save time cost: %f s' %(time.time()-start))
 
