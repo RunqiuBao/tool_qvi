@@ -186,10 +186,10 @@ def generate_1():
         I1 = I1.cpu()
         for indexBatch in range(I1.shape[0]):
             out_imgs.append(I1[indexBatch, :, paddingwidth:-paddingwidth, paddingwidth:-paddingwidth])
-            ts_imgs.append(frame_numbias + indexBatch)
+            ts_imgs.append(i + indexBatch)
             for indexInterFrame in range(config.inter_frames):
                 out_imgs.append(interFramesOutput[indexInterFrame][indexBatch, :, paddingwidth:-paddingwidth, paddingwidth:-paddingwidth])
-                ts_imgs.append(frame_numbias + indexBatch + 1 * (indexInterFrame + 1) / (config.inter_frames + 1))
+                ts_imgs.append(i + indexBatch + 1 * (indexInterFrame + 1) / (config.inter_frames + 1))
 
         I0, I1, I2, I3 = [], [], [], []
         print("{}-th batch finish!".format(i))
